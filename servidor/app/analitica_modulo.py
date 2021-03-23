@@ -8,7 +8,7 @@ import pika
 
 class analitica():
     ventana = 10
-    pronostico = 5
+    pronostico = 3
     file_name = "data_base.csv"
     servidor = "20.84.105.98"
 
@@ -24,8 +24,16 @@ class analitica():
 
     def update_data(self, msj):
         msj_vetor = msj.split(",")
-        new_data = {"fecha": msj_vetor[0], "sensor": msj_vetor[1], "valor": float(msj_vetor[2])}
+        now = datetime.now()
+        date_time = now.strftime('%d.%m.%Y %H:%M:%S')
+        new_data = {"fecha": date_time, "sensor": msj_vetor[0], "valor": float(msj_vetor[1])}
         self.df = self.df.append(new_data, ignore_index=True)
+        new_data = {"fecha": date_time, "sensor": msj_vetor[2], "valor": float(msj_vetor[3])}
+        self.df = self.df.append(new_data, ignore_index=True)
+
+        self.publicar("temperatura",msj_vetor[1])
+        self.publicar("humedad",msj_vetor[3])
+
         self.analitica_descriptiva()
         self.analitica_predictiva()
         self.guardar()
@@ -35,7 +43,8 @@ class analitica():
 
     def analitica_descriptiva(self):
         self.operaciones("temperatura")
-        self.operaciones("densidad")
+        self.operaciones("humedad")
+
 
     def operaciones(self, sensor):
         df_filtrado = self.df[self.df["sensor"] == sensor]
@@ -46,12 +55,15 @@ class analitica():
         self.publicar("mean-{}".format(sensor), str(df_filtrado.mean(skipna = True)))
         self.publicar("median-{}".format(sensor), str(df_filtrado.median(skipna = True)))
         self.publicar("std-{}".format(sensor), str(df_filtrado.std(skipna = True)))
-        if str(df_filtrado.max(skipna = True))>"10":
-            self.publicar("alerta-{}".format(sensor), "falla")
+
+        if ("max-{}".format(sensor)=="max-humedad".format(sensor)) and str(df_filtrado.max(skipna = True))>"62":
+            self.publicar("alerta-humedad".format(sensor), "falla")
+
 
     def analitica_predictiva(self):
         self.regresion("temperatura")
-        self.regresion("densidad")
+        self.regresion("humedad")
+
 
     def regresion(self, sensor):
         df_filtrado = self.df[self.df["sensor"] == sensor]
@@ -75,7 +87,8 @@ class analitica():
         for tiempo, prediccion in zip(nuevos_tiempos, Y_pred):
             time_format = datetime.utcfromtimestamp(tiempo)
             date_time = time_format.strftime('%d.%m.%Y %H:%M:%S')
-            self.publicar("prediccion-{}".format(sensor), "{}".format(prediccion[0]))
+            self.publicar("prediccion-{}".format(sensor), "{},{}".format(date_time,prediccion[0]))
+            self.publicar("prediccion_data-{}".format(sensor), "{:.2f}".format(prediccion[0]))
     @staticmethod
     def publicar(cola, mensaje):
         connexion = pika.BlockingConnection(pika.ConnectionParameters(host='rabbit'))
