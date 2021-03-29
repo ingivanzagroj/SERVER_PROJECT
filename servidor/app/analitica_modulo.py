@@ -56,8 +56,17 @@ class analitica():
         self.publicar("median-{}".format(sensor), str(df_filtrado.median(skipna = True)))
         self.publicar("std-{}".format(sensor), str(df_filtrado.std(skipna = True)))
 
-        if ("max-{}".format(sensor)=="max-humedad".format(sensor)) and str(df_filtrado.max(skipna = True))>"62":
-            self.publicar("alerta-humedad".format(sensor), "falla")
+        if ("max-{}".format(sensor)=="max-humedad".format(sensor)) and str(df_filtrado.max(skipna = True))>"70":
+            self.publicar("alerta-humedad".format(sensor), "Precaucion Humedad Elevada ")
+
+        if ("min-{}".format(sensor)=="min-humedad".format(sensor)) and str(df_filtrado.min(skipna = True))<"60":
+            self.publicar("alerta-humedad".format(sensor), "Precaucion Humedad Muy Baja")
+
+        if ("max-{}".format(sensor)=="max-temperatura".format(sensor)) and str(df_filtrado.max(skipna = True))>"30":
+            self.publicar("alerta-temperatura".format(sensor), "Precaucion temperatura Elevada ")
+
+        if ("min-{}".format(sensor)=="min-temperatura".format(sensor)) and str(df_filtrado.min(skipna = True))<"23":
+            self.publicar("alerta-temperatura".format(sensor), "Precaucion temperatura Muy Baja")
 
 
     def analitica_predictiva(self):
