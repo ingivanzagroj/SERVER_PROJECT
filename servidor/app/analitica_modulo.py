@@ -5,12 +5,28 @@ import os
 from sklearn.linear_model import LinearRegression
 import time
 import pika
+import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
 
 class analitica():
     ventana = 10
     pronostico = 3
     file_name = "data_base.csv"
     servidor = "20.84.105.98"
+
+    def on_connect(client, userdata, flags, rc):
+        print("Connected with result code "+str(rc))
+        client.subscribe("$SYS/#")
+
+    def on_message(client, userdata, msg):
+        print(msg.topic + " " + str(msg.payload))
+
+    client = mqtt.Client('Publicador_alerta')
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.connect(servidor, 1883, 60)
+    client.loop_start()
 
     def __init__(self) -> None:
         self.load_data()
@@ -57,16 +73,20 @@ class analitica():
         self.publicar("std-{}".format(sensor), str(df_filtrado.std(skipna = True)))
 
         if ("max-{}".format(sensor)=="max-humedad".format(sensor)) and str(df_filtrado.max(skipna = True))>"70":
-            self.publicar("alerta-humedad".format(sensor), "Precaucion Humedad Elevada ")
+            publish.single('2/alertahum', "Precaucion Humedad elevada", hostname='20.84.105.98', client_id='pub_alerta')
+            #self.publicar("alerta-humedad".format(sensor), "Precaucion Humedad Elevada ")
 
         if ("min-{}".format(sensor)=="min-humedad".format(sensor)) and str(df_filtrado.min(skipna = True))<"60":
-            self.publicar("alerta-humedad".format(sensor), "Precaucion Humedad Muy Baja")
+            publish.single('2/alertahum', "Precaucion Humedad baja", hostname='20.84.105.98', client_id='pub_alerta')
+            #self.publicar("alerta-humedad".format(sensor), "Precaucion Humedad Muy Baja")
 
         if ("max-{}".format(sensor)=="max-temperatura".format(sensor)) and str(df_filtrado.max(skipna = True))>"30":
-            self.publicar("alerta-temperatura".format(sensor), "Precaucion temperatura Elevada ")
+            publish.single('2/alertatemp', "Precaucion temperatura elevada", hostname='20.84.105.98', client_id='pub_alerta')
+            #self.publicar("alerta-temperatura".format(sensor), "Precaucion temperatura Elevada ")
 
         if ("min-{}".format(sensor)=="min-temperatura".format(sensor)) and str(df_filtrado.min(skipna = True))<"23":
-            self.publicar("alerta-temperatura".format(sensor), "Precaucion temperatura Muy Baja")
+            publish.single('2/alertatemp', "Precaucion temperatura baja", hostname='20.84.105.98', client_id='pub_alerta')
+            #self.publicar("alerta-temperatura".format(sensor), "Precaucion temperatura Muy Baja")
 
 
     def analitica_predictiva(self):
